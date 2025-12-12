@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#00D26A"  # Leaf Green
+backgroundColor = "#0E1117" # Dark Grey Background
+secondaryBackgroundColor = "#262730" # Card Background
+textColor = "#FAFAFA"
+font = "sans serif"

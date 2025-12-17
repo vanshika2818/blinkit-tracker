@@ -45,14 +45,11 @@ def set_location_manually(page, location_identifier):
         
         try:
             # Strategy A: Click the first item in the list directly
-            # The list usually has a specific class. We grab the first child div.
-            # We use a broad selector that targets the suggestion items
             first_result = page.locator("div[class*='LocationSearchList'] > div").first
             first_result.click(timeout=3000)
             print("  > Clicked 1st result via mouse.")
         except:
-            # Strategy B: Keyboard Force (Reliable)
-            # If the mouse click fails, we simply press Down -> Enter
+            # Strategy B: Keyboard Force
             print("  > Mouse failed. Using Keyboard (Down -> Enter)...")
             page.keyboard.press("ArrowDown")
             time.sleep(0.5)
@@ -70,7 +67,7 @@ def check_rank(location_string, category, target_brand="Leaf"):
     print(f"\n--- Checking '{location_string}' for '{category}' ---")
     
     with sync_playwright() as p:
-        # Launch browser visible
+        # Launch browser
         browser = p.chromium.launch(headless=False, slow_mo=50)
         context = browser.new_context(viewport={"width": 1280, "height": 720}, locale="en-IN")
         page = context.new_page()
@@ -90,16 +87,20 @@ def check_rank(location_string, category, target_brand="Leaf"):
             except:
                 print("  > Warning: Page slow.")
 
-            # 3. SCAN PRODUCTS (BROAD MATCH + STRICT WALL)
-            print(f"  > Scanning for target: '{target_brand}'...")
+            # 3. SCAN PRODUCTS (LIMIT: 36 ITEMS)
+            LIMIT_CHECK = 36  # The "6 Rows" Rule
+            
+            print(f"  > Scanning Top {LIMIT_CHECK} products for: '{target_brand}'...")
             
             seen_products = set()
             master_list = [] 
             
+            # Stop phrases (Still useful if page has < 36 items)
             stop_phrases = ["Showing related products", "Related to your search", "You might also like", "Similar products"]
 
-            for scroll_step in range(30):
-                # A. CHECK STOP WALL
+            for scroll_step in range(15): # Reduced scrolls needed since we only want top 36
+                
+                # A. CHECK STOP WALL (In case < 36 items exist)
                 hit_wall = False
                 wall_y = 999999
                 for phrase in stop_phrases:
@@ -110,7 +111,6 @@ def check_rank(location_string, category, target_brand="Leaf"):
                             if box:
                                 hit_wall = True
                                 wall_y = box['y']
-                                print(f"  🛑 Wall detected: '{phrase}' at Y={int(wall_y)}")
                                 break
                     if hit_wall: break
 
@@ -129,7 +129,7 @@ def check_rank(location_string, category, target_brand="Leaf"):
                         card_element = btn.locator("xpath=../../..")
                         full_card_text = card_element.inner_text().strip()
                         
-                        # Generate ID (Best Effort Name)
+                        # Generate ID
                         lines = full_card_text.split('\n')
                         best_name = "Unknown"
                         for line in lines:
@@ -138,23 +138,31 @@ def check_rank(location_string, category, target_brand="Leaf"):
                         
                         unique_id = best_name
                         
+                        # PROCESS ITEM
                         if unique_id not in seen_products:
                             seen_products.add(unique_id)
                             master_list.append(unique_id)
                             current_rank = len(master_list)
                             
-                            # BROAD MATCH CHECK
+                            # 1. CHECK MATCH
                             if target_brand.lower() in full_card_text.lower():
                                 print(f"\n  ★ MATCH FOUND at Rank #{current_rank}")
                                 return {"status": "Available", "rank": current_rank, "product": unique_id}
+                            
+                            # 2. CHECK LIMIT (The new rule)
+                            if current_rank >= LIMIT_CHECK:
+                                print(f"  > Reached limit of {LIMIT_CHECK} items. Stopping.")
+                                return {"status": "Not Found", "rank": "NA", "product": "NA"}
                                 
                     except:
                         continue
                 
+                # Stop if we hit the wall naturally
                 if hit_wall:
-                    print("  > Stopped search at Related Products.")
+                    print("  > Stopped at 'Related Products' wall.")
                     return {"status": "Not Found", "rank": "NA", "product": "NA"}
 
+                # Scroll Down
                 page.evaluate("window.scrollBy(0, 400)")
                 time.sleep(1.0)
 

@@ -1,0 +1,141 @@
+import json
+import os
+
+DATA_FILE = "tracker_config.json"
+
+# --- DEFAULT DATABASE (Updated with All Cities) ---
+DEFAULT_DATA = {
+    "PRODUCT_CATALOG": {
+        "Headphones": ["Leaf Bass Wireless Bluetooth Headphones (Carbon Black)"],
+        "Earbuds": [
+            "Leaf X334 TWS Earbuds (Espresso)",
+            "Leaf X334 TWS Earbuds (Glacier)",
+            "Leaf X334 AI Sound TWS Earbuds (Matcha)",
+            "Leaf X121 TWS Earbuds (Carbon Black)"
+        ],
+        "Neckband": [], "Smartwatch": [], "Smart Ring": []
+    },
+    "LOCATION_DB": {
+        "Delhi": [
+            "Connaught Place 110001", "Karol Bagh 110005", "Chandni Chowk 110006", 
+            "Lajpat Nagar 110024", "Rajouri Garden 110027", "Vasant Kunj 110070", 
+            "Saket 110017", "Hauz Khas 110016", "Dwarka 110075", "Janakpuri 110058", 
+            "Greater Kailash 110048", "Rohini 110085", "Pitampura 110034", 
+            "Mayur Vihar 110091", "Preet Vihar 110092", "Shahdara 110032", 
+            "Uttam Nagar 110059", "Paschim Vihar 110063", "Shalimar Bagh 110088", 
+            "Ashok Vihar 110052", "Patel Nagar 110008", "Tilak Nagar 110018", 
+            "Malviya Nagar 110017", "Green Park 110016", "Defence Colony 110024", 
+            "Nehru Place 110019", "Okhla 110020", "Mehrauli 110030", 
+            "Chhatarpur 110074", "Laxmi Nagar 110092", "Krishna Nagar 110051", 
+            "Model Town 110009", "Civil Lines 110054", "Punjabi Bagh 110026", 
+            "Naraina 110028", "Kirti Nagar 110015"
+        ],
+        "Gurgaon": [
+            "DLF Cyber City 122002", "MG Road 122002", "Sushant Lok 122009", 
+            "Golf Course Road 122002", "Sohna Road 122018", "Sector 14 122001", 
+            "Sector 56 122011", "Palam Vihar 122017", "Sector 45 122003", 
+            "Sector 50 122018", "South City (I & II) 122001", "Nirvana Country 122018", 
+            "Sector 46 122003", "Sector 31 122001", "Sector 57 122003", 
+            "Sector 29 122002", "Udyog Vihar 122016", "Sector 82 122004", 
+            "Sector 22 122015"
+        ],
+        "Noida": [
+            "Sector 18 201301", "Sector 62 201309", "Sector 15 201301", 
+            "Sector 50 201301", "Sector 37 201303", "Sector 22 201301", 
+            "Sector 93 201304", "Sector 12 201301", "Sector 44 201303", 
+            "Sector 16 201301", "Sector 76 201304", "Sector 78 201305", 
+            "Sector 104 201304", "Sector 137 201305", "Sector 120 201307", 
+            "Sector 110 201304", "Sector 41 201303", "Sector 75 201304"
+        ],
+        "Ghaziabad": [
+            "Indirapuram 201014", "Vaishali 201010", "Kaushambi 201012", 
+            "Raj Nagar Extension 201017", "Vasundhara 201012", "Kavi Nagar 201002", 
+            "Shastri Nagar 201002", "Crossing Republik 201016", "Nehru Nagar 201001", 
+            "Sahibabad 201005", "Mohan Nagar 201007", "Rajendra Nagar 201005", 
+            "Sanjay Nagar 201002"
+        ],
+        "Faridabad": [
+            "Sector 15 121007", "Sector 21 121001", "Sector 37 121003", 
+            "Sector 7 121006", "Sector 9 121006", "Sector 28 121008", 
+            "Sector 46 121010", "Sector 19 121002", "Sector 14 121007", 
+            "Sector 11 121006", "Sector 16 121002", "Sector 31 121003", 
+            "NIT Faridabad 121001", "Greenfield Colony 121003"
+        ],
+        "Mumbai": [
+            "Colaba 400005", "Andheri West 400053", "Andheri East 400069", 
+            "Bandra West 400050", "Powai 400076", "Navi Mumbai (CBD Belapur) 400614", 
+            "Juhu 400049", "Malad West 400064", "Borivali West 400092", 
+            "Thane West 400601", "Worli 400018", "Dadar 400014", 
+            "Lower Parel 400013", "Goregaon East 400063", "Goregaon West 400104", 
+            "Kandivali West 400067", "Chembur 400071", "Ghatkopar West 400086", 
+            "Mulund West 400080", "Mira Road 401107", "Vasai West 401201", 
+            "Vikhroli West 400083", "Vashi 400703"
+        ],
+        "Bengaluru": [
+            "Indiranagar 560038", "Koramangala 560034", "Whitefield 560066", 
+            "Jayanagar 560041", "Electronic City 560100", "MG Road 560001", 
+            "HSR Layout 560102", "Marathahalli 560037", "Yeshwanthpur 560022", 
+            "Rajajinagar 560010", "Banashankari 560050", "Malleswaram 560003", 
+            "Bellandur 560103", "Bommanahalli 560068", "Sarjapur Road 560035"
+        ],
+        "Hyderabad": [
+            "Banjara Hills 500034", "Jubilee Hills 500033", "Gachibowli 500032", 
+            "Secunderabad 500003", "Madhapur 500081", "Kondapur 500084", 
+            "Begumpet 500016", "Kukatpally 500072", "Ameerpet 500016", 
+            "Himayatnagar 500029", "Kachiguda 500027", "LB Nagar 500074", 
+            "Mehdipatnam 500028", "Attapur 500048", "Alwal 500010", 
+            "Dilsukhnagar 500060"
+        ],
+        "Chennai": [
+            "T Nagar 600017", "Anna Nagar 600040", "Velachery 600042", 
+            "Adyar 600020", "Tambaram 600045", "Nungambakkam 600034", 
+            "Mylapore 600004", "Porur 600116", "Sholinganallur 600119", 
+            "Thiruvanmiyur 600041", "Guindy 600032", "Ambattur 600053", 
+            "Perambur 600011", "Pallavaram 600043", "Kodambakkam 600024"
+        ],
+        "Kolkata": [
+            "Salt Lake 700064", "Park Street 700016", "Ballygunge 700019", 
+            "New Town 700156", "Alipore 700027", "Gariahat 700029", 
+            "Behala 700034", "Tollygunge 700040", "Dum Dum 700028", 
+            "Howrah 711101", "Rajarhat 700135", "Kalighat 700026", 
+            "Jadavpur 700032", "Esplanade 700069", "Barasat 700124"
+        ],
+        "Ahmedabad": [
+            "Satellite 380015", "Vastrapur 380015", "Navrangpura 380009", 
+            "Bopal 380058", "SG Highway 380054", "Maninagar 380008", 
+            "Prahlad Nagar 380015", "Thaltej 380054", "Bodakdev 380054", 
+            "Ellis Bridge 380006", "Shahibaug 380004", "Naranpura 380013", 
+            "Chandkheda 382424"
+        ],
+        "Pune": [
+            "Koregaon Park 411001", "Viman Nagar 411014", "Hinjewadi 411057", 
+            "Kothrud 411038", "Baner 411045", "Hadapsar 411028", "Aundh 411007", 
+            "Wakad 411057", "Magarpatta 411013", "Pimpri 411018", "Camp 411001", 
+            "Swargate 411042", "FC Road 411004", "Katraj 411046", 
+            "Shivaji Nagar 411005", "Pimple Saudagar 411027", "Bavdhan 411021"
+        ],
+        "Others": [
+            "Bahadurgarh 124507", "Sonipat 131001", "Rohtak 124001"
+        ]
+    }
+}
+
+def load_data():
+    """Loads data from JSON file. If missing, creates it with defaults."""
+    # If the file doesn't exist, create it using DEFAULT_DATA
+    if not os.path.exists(DATA_FILE):
+        save_data(DEFAULT_DATA)
+        return DEFAULT_DATA
+    
+    try:
+        with open(DATA_FILE, "r") as f:
+            data = json.load(f)
+            # Optional: You could merge defaults here if keys are missing
+            return data
+    except:
+        return DEFAULT_DATA
+
+def save_data(data):
+    """Saves the current data dictionary to JSON."""
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)

@@ -68,7 +68,7 @@ def check_rank(location_string, category, target_brand="Leaf"):
     
     with sync_playwright() as p:
         # Launch browser
-        browser = p.chromium.launch(headless=True, slow_mo=50)
+        browser = p.chromium.launch(headless=False, slow_mo=50)
         context = browser.new_context(viewport={"width": 1280, "height": 720}, locale="en-IN")
         page = context.new_page()
 
